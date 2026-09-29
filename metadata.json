@@ -1,0 +1,6 @@
+{
+  "name": "PT. Trias Insan Madani - Cirebon",
+  "description": "Sistem Informasi Penempatan Pekerja Migran Indonesia (P3MI) & Kas Operasional PT. Trias Insan Madani Cabang Cirebon: Database CPMI, Buku Kas, Laporan & Batch Import.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
