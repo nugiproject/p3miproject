@@ -173,3 +173,29 @@ export function getPaymentStatusMeta(status: string) {
       return { bg: 'bg-rose-50 text-rose-700 border-rose-200', text: 'Belum Bayar' };
   }
 }
+
+export function terbilangRupiah(nominal: number): string {
+  if (!nominal || isNaN(nominal) || nominal <= 0) return 'Nol Rupiah';
+
+  const angka = [
+    '', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan',
+    'Sepuluh', 'Sebelas'
+  ];
+
+  function konversi(n: number): string {
+    if (n < 12) return angka[n];
+    if (n < 20) return konversi(n - 10) + ' Belas';
+    if (n < 100) return konversi(Math.floor(n / 10)) + ' Puluh ' + konversi(n % 10);
+    if (n < 200) return 'Seratus ' + konversi(n - 100);
+    if (n < 1000) return konversi(Math.floor(n / 100)) + ' Ratus ' + konversi(n % 100);
+    if (n < 2000) return 'Seribu ' + konversi(n - 1000);
+    if (n < 1000000) return konversi(Math.floor(n / 1000)) + ' Ribu ' + konversi(n % 1000);
+    if (n < 1000000000) return konversi(Math.floor(n / 1000000)) + ' Juta ' + konversi(n % 1000000);
+    if (n < 1000000000000) return konversi(Math.floor(n / 1000000000)) + ' Miliar ' + konversi(n % 1000000000);
+    return konversi(Math.floor(n / 1000000000000)) + ' Triliun ' + konversi(n % 1000000000000);
+  }
+
+  const hasil = konversi(Math.floor(nominal)).trim().replace(/\s+/g, ' ');
+  return hasil + ' Rupiah';
+}
+

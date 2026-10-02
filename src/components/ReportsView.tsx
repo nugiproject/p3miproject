@@ -13,6 +13,7 @@ import {
 import { CpmiRecord, KasTransaction } from '../types/cpmi';
 import { formatRupiah, getCpmiStatusMeta } from '../utils/formatters';
 import { exportTriasMultiSheetExcel } from '../services/excelExport';
+import { ReportConsolidatedPrintModal } from './PrintModals';
 
 interface ReportsViewProps {
   cpmis: CpmiRecord[];
@@ -24,6 +25,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ cpmis, transactions, p
   const [searchQuery, setSearchQuery] = useState('');
   const [minSpend, setMinSpend] = useState<number>(0);
   const [filterStatus, setFilterStatus] = useState('');
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // 1. Group transactions per CPMI
   const candidateLedger = useMemo(() => {
@@ -119,7 +121,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ cpmis, transactions, p
   };
 
   const handlePrint = () => {
-    window.print();
+    setIsPrintModalOpen(true);
   };
 
   return (
@@ -388,6 +390,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ cpmis, transactions, p
           </span>
         </div>
       </div>
+
+      {isPrintModalOpen && (
+        <ReportConsolidatedPrintModal
+          cpmis={cpmis}
+          transactions={transactions}
+          ptName={ptName}
+          onClose={() => setIsPrintModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

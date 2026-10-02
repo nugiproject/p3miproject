@@ -8,7 +8,7 @@ const STORAGE_KEY_PT_LOGO = 'CPMI_PORTAL_PT_LOGO';
 const STORAGE_KEY_USERS = 'CPMI_PORTAL_USERS';
 const STORAGE_KEY_AUTH = 'CPMI_PORTAL_LOGGED_IN_USER';
 
-export const DEFAULT_PT_NAME = 'PT. TRIAS INSAN MADANI - CABANG CIREBON';
+export const DEFAULT_PT_NAME = 'PERUSAHAAN PENEMPATAN PEKERJA MIGRAN INDONESIA (P3MI)';
 export const DEFAULT_ADMIN_USER: PortalUser = {
   id: 'ADMIN-DEFAULT',
   name: 'Muhamad Nugi Andri',
@@ -75,7 +75,12 @@ export function saveTransactions(txs: KasTransaction[]): void {
 // 3. PT Name & Logo Profile
 export function loadPtName(): string {
   try {
-    return localStorage.getItem(STORAGE_KEY_PT_NAME) || DEFAULT_PT_NAME;
+    const raw = localStorage.getItem(STORAGE_KEY_PT_NAME);
+    if (!raw || raw.includes('TRIAS INSAN MADANI')) {
+      savePtName(DEFAULT_PT_NAME);
+      return DEFAULT_PT_NAME;
+    }
+    return raw;
   } catch {
     return DEFAULT_PT_NAME;
   }

@@ -29,6 +29,7 @@ export function exportTriasMultiSheetExcel(
     return {
       id: c.id,
       name: c.name,
+      agency: c.agency || ptName,
       recruiter: c.recruiter || '-',
       destination: c.destination || 'Taiwan',
       status: c.status,
@@ -89,6 +90,7 @@ export function exportTriasMultiSheetExcel(
     No: idx + 1,
     'ID CPMI (Referensi)': c.id,
     'Nama Lengkap CPMI': c.name,
+    'Nama PT / Perusahaan': c.agency,
     'Sponsor / PL': c.recruiter,
     'Negara Tujuan': c.destination,
     'Status Proses': c.status,
@@ -182,6 +184,7 @@ export function exportCustomFilteredExcel(
       No: idx + 1,
       'ID CPMI': c.id,
       'Nama Lengkap': c.name,
+      'Nama PT / Perusahaan': c.agency || 'PT. TRIAS INSAN MADANI',
       'Jenis Kelamin': c.gender,
       'Negara Tujuan': c.destination,
       'Posisi Pekerjaan': c.category || 'TKW (In Formal)',

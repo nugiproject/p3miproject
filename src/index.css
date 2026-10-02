@@ -51,26 +51,81 @@
 
 /* Dedicated Print Styles */
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    margin: 8mm;
+    size: auto;
   }
-  .printable-area, .printable-area * {
-    visibility: visible;
+
+  html, body {
+    background: #ffffff !important;
+    color: #212529 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
   }
-  .printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100% !important;
+
+  /* Hide app navigation, headers, footers, buttons */
+  .print\:hidden,
+  #login-container,
+  header,
+  nav,
+  footer,
+  aside,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Unset fixed modal backdrops during print so they flow naturally */
+  .print-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
     margin: 0 !important;
-    padding: 15mm !important;
-    background: white !important;
-    color: black !important;
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .print-modal-container {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .printable-area {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     border: none !important;
     box-shadow: none !important;
   }
-  @page {
-    margin: 10mm;
-    size: auto;
+
+  tr, .page-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

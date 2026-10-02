@@ -9,6 +9,7 @@ import {
   Database,
   Receipt,
   Sparkles,
+  Building2,
 } from 'lucide-react';
 import { CpmiRecord, KasTransaction } from '../types/cpmi';
 import { parseRawCpmis, parseRawTransactions } from '../data/triasDataLoader';
@@ -17,15 +18,18 @@ import { formatRupiah, formatDateIndo } from '../utils/formatters';
 interface BatchImportViewProps {
   onImportCpmis: (newCpmis: CpmiRecord[]) => void;
   onImportTransactions: (newTxs: KasTransaction[]) => void;
+  ptName?: string;
 }
 
 export const BatchImportView: React.FC<BatchImportViewProps> = ({
   onImportCpmis,
   onImportTransactions,
+  ptName = 'PT. TRIAS INSAN MADANI',
 }) => {
   // Raw input texts
   const [rawCpmiText, setRawCpmiText] = useState('');
   const [rawTxText, setRawTxText] = useState('');
+  const [targetPt, setTargetPt] = useState(ptName);
 
   // Parsed previews
   const [previewCpmis, setPreviewCpmis] = useState<CpmiRecord[]>([]);
@@ -37,47 +41,54 @@ export const BatchImportView: React.FC<BatchImportViewProps> = ({
   // Parse CPMI text
   const handleParseCpmi = () => {
     if (!rawCpmiText.trim()) {
-      alert('Masukkan teks mentah CPMI terlebih dahulu!');
+      setStatusMessage('Mohon masukkan teks mentah CPMI terlebih dahulu!');
       return;
     }
     try {
       const parsed = parseRawCpmis(rawCpmiText);
       if (parsed.length === 0) {
-        alert('Tidak ada baris data CPMI yang berhasil diurai. Periksa format teks Anda.');
+        setStatusMessage('Tidak ada baris data CPMI yang berhasil diurai. Periksa format teks Anda.');
         return;
       }
-      setPreviewCpmis(parsed);
-      setStatusMessage(`Berhasil mengurai ${parsed.length} baris kandidat CPMI.`);
+      const adjusted = parsed.map((c) => ({
+        ...c,
+        agency: targetPt.trim() || c.agency || ptName,
+      }));
+      setPreviewCpmis(adjusted);
+      setStatusMessage(`Berhasil mengurai ${adjusted.length} baris kandidat CPMI untuk ${targetPt}.`);
     } catch (err) {
-      alert('Gagal mengurai teks CPMI. Periksa format pengetikan.');
+      setStatusMessage('Gagal mengurai teks CPMI. Periksa format pengetikan.');
     }
   };
 
   // Parse Transactions text
   const handleParseTransactions = () => {
     if (!rawTxText.trim()) {
-      alert('Masukkan teks mentah Transaksi terlebih dahulu!');
+      setStatusMessage('Mohon masukkan teks mentah Transaksi terlebih dahulu!');
       return;
     }
     try {
       const parsed = parseRawTransactions(rawTxText);
       if (parsed.length === 0) {
-        alert('Tidak ada baris transaksi yang berhasil diurai. Periksa format teks Anda.');
+        setStatusMessage('Tidak ada baris transaksi yang berhasil diurai. Periksa format teks Anda.');
         return;
       }
       setPreviewTxs(parsed);
       setStatusMessage(`Berhasil mengurai ${parsed.length} baris transaksi kasir.`);
     } catch (err) {
-      alert('Gagal mengurai teks transaksi kasir. Periksa format pengetikan.');
+      setStatusMessage('Gagal mengurai teks transaksi kasir. Periksa format pengetikan.');
     }
   };
 
   // Commit CPMI to Database
   const handleCommitCpmis = () => {
     if (previewCpmis.length === 0) return;
-    onImportCpmis(previewCpmis);
-    setStatusMessage(`Sukses menambahkan ${previewCpmis.length} CPMI baru ke database!`);
-    alert(`Sukses menambahkan ${previewCpmis.length} CPMI baru ke database.`);
+    const finalCpmis = previewCpmis.map((c) => ({
+      ...c,
+      agency: targetPt.trim() || c.agency || ptName,
+    }));
+    onImportCpmis(finalCpmis);
+    setStatusMessage(`Sukses menambahkan ${finalCpmis.length} CPMI baru ke database!`);
     setPreviewCpmis([]);
     setRawCpmiText('');
   };
@@ -87,7 +98,6 @@ export const BatchImportView: React.FC<BatchImportViewProps> = ({
     if (previewTxs.length === 0) return;
     onImportTransactions(previewTxs);
     setStatusMessage(`Sukses menambahkan ${previewTxs.length} transaksi kasir baru ke buku kas!`);
-    alert(`Sukses menambahkan ${previewTxs.length} transaksi kasir baru ke buku kas.`);
     setPreviewTxs([]);
     setRawTxText('');
   };
@@ -165,6 +175,21 @@ export const BatchImportView: React.FC<BatchImportViewProps> = ({
             <p className="text-[11px] text-[#8C8479] mb-2">
               Format: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[#1F3A5F]">[No] [ID TS] [Nama] [Negara] [Status] [Sponsor]</code>
             </p>
+
+            {/* Target PT selector */}
+            <div className="mb-3 p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
+              <label className="block text-[11px] font-bold text-blue-900 mb-1 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-700" />
+                <span>PT Penempatan untuk CPMI Hasil Impor Ini:</span>
+              </label>
+              <input
+                type="text"
+                value={targetPt}
+                onChange={(e) => setTargetPt(e.target.value)}
+                placeholder="Contoh: PT. TRIAS INSAN MADANI"
+                className="w-full px-3 py-1.5 bg-white border border-blue-300 rounded-lg text-xs font-semibold text-[#1F3A5F] focus:outline-none focus:border-blue-600"
+              />
+            </div>
 
             <textarea
               rows={8}

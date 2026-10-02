@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Building2,
 } from 'lucide-react';
 import {
   CpmiRecord,
@@ -58,8 +59,16 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCountry, setFilterCountry] = useState('');
   const [filterGender, setFilterGender] = useState('');
+  const [filterPt, setFilterPt] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+
+  // Feedback Notification Toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // Selected CPMI for Detail Drawer
   const [selectedCpmiId, setSelectedCpmiId] = useState<string | null>(null);
@@ -72,6 +81,29 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
   // File upload ref & state
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Dynamic PT / Perusahaan list (derived from data + defaults)
+  const availablePtList = useMemo(() => {
+    const defaultList = [
+      ptName,
+      'PT. TRIAS INSAN MADANI',
+      'PT. GRAHA AYUKARSA',
+      'PT. CITRA PUTRA INDARAB',
+      'PT. MILLENIUM MANDIRI',
+      'PT. AL ZUBARA MANPOWER',
+      'PT. BIJAK INDONESIA',
+      'PT. TENRIBAWANG',
+      'PT. BALANTA BUDI PRIMA',
+    ];
+    const set = new Set<string>();
+    defaultList.forEach((p) => {
+      if (p && p.trim()) set.add(p.trim());
+    });
+    cpmis.forEach((c) => {
+      if (c.agency && c.agency.trim()) set.add(c.agency.trim());
+    });
+    return Array.from(set).sort();
+  }, [cpmis, ptName]);
 
   // Dynamic recruiters list
   const recruiters = useMemo(() => {
@@ -108,6 +140,7 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
         !q ||
         c.name.toLowerCase().includes(q) ||
         c.id.toLowerCase().includes(q) ||
+        (c.agency && c.agency.toLowerCase().includes(q)) ||
         (c.recruiter && c.recruiter.toLowerCase().includes(q)) ||
         (c.destination && c.destination.toLowerCase().includes(q));
 
@@ -115,10 +148,11 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
       const matchStatus = !filterStatus || c.status.toLowerCase().includes(filterStatus.toLowerCase());
       const matchCountry = !filterCountry || c.destination === filterCountry;
       const matchGender = !filterGender || c.gender === filterGender;
+      const matchPt = !filterPt || (c.agency && c.agency.toLowerCase() === filterPt.toLowerCase());
 
-      return matchSearch && matchRecruiter && matchStatus && matchCountry && matchGender;
+      return matchSearch && matchRecruiter && matchStatus && matchCountry && matchGender && matchPt;
     });
-  }, [cpmis, searchQuery, filterRecruiter, filterStatus, filterCountry, filterGender]);
+  }, [cpmis, searchQuery, filterRecruiter, filterStatus, filterCountry, filterGender, filterPt]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCpmis.length / itemsPerPage) || 1;
@@ -284,17 +318,17 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCpmi || !editingCpmi.name.trim()) {
-      alert('Nama lengkap CPMI wajib diisi!');
+      showToast('Nama lengkap CPMI wajib diisi!');
       return;
     }
 
     const isNew = !cpmis.some((c) => c.id === editingCpmi.id);
     if (isNew) {
       onAddCpmi(editingCpmi);
-      alert(`CPMI ${editingCpmi.id} (${editingCpmi.name}) berhasil didaftarkan!`);
+      showToast(`CPMI ${editingCpmi.id} (${editingCpmi.name}) berhasil didaftarkan untuk ${editingCpmi.agency || ptName}!`);
     } else {
       onUpdateCpmi(editingCpmi);
-      alert(`Data CPMI ${editingCpmi.id} berhasil diperbarui!`);
+      showToast(`Data CPMI ${editingCpmi.id} (${editingCpmi.agency || ptName}) berhasil diperbarui!`);
     }
     setIsModalOpen(false);
     setEditingCpmi(null);
@@ -306,6 +340,23 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
 
   return (
     <div className="space-y-6" id="cpmi-database-root">
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs font-semibold text-emerald-800 flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="text-emerald-600 hover:text-emerald-900 cursor-pointer p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Top Header & Actions */}
       <div className="bg-white p-6 rounded-3xl border border-[#E2DDD5] shadow-xs">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -314,7 +365,7 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
               Database Terpadu Calon Pekerja Migran Indonesia (CPMI)
             </h2>
             <p className="text-xs text-[#8C8479] mt-0.5">
-              Kelola profil, riwayat alur 10 tahapan, kelengkapan 13 berkas, dan akumulasi biaya kasir operasional per kandidat.
+              Kelola profil, pembagian PT penempatan, riwayat alur 10 tahapan, kelengkapan 13 berkas, dan akumulasi biaya kasir operasional.
             </p>
           </div>
 
@@ -338,8 +389,8 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
           </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-4 border-t border-[#E2DDD5]">
+        {/* Filter Bar (Now includes PT Penempatan filter!) */}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-[#E2DDD5]">
           {/* Search Box */}
           <div className="relative">
             <Search className="w-4 h-4 text-[#8C8479] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -350,9 +401,31 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Cari ID, Nama, Sponsor..."
+              placeholder="Cari ID, Nama, PT, Sponsor..."
               className="w-full pl-9 pr-3 py-2 bg-[#F7F5F2] border border-[#E2DDD5] rounded-xl text-xs focus:outline-none focus:border-[#1F3A5F] focus:bg-white transition-all text-[#212529]"
             />
+          </div>
+
+          {/* Filter PT / Perusahaan */}
+          <div>
+            <select
+              value={filterPt}
+              onChange={(e) => {
+                setFilterPt(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 bg-blue-50/70 border border-blue-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#1F3A5F] focus:bg-white transition-all text-blue-900"
+            >
+              <option value="">Semua PT ({cpmis.length})</option>
+              {availablePtList.map((pt) => {
+                const count = cpmis.filter((c) => (c.agency || '').toLowerCase() === pt.toLowerCase()).length;
+                return (
+                  <option key={pt} value={pt}>
+                    {pt} ({count})
+                  </option>
+                );
+              })}
+            </select>
           </div>
 
           {/* Filter Recruiter / Sponsor */}
@@ -433,12 +506,13 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
         <div className="mt-3 flex items-center justify-between text-xs text-[#8C8479]">
           <span>
             Menampilkan <b>{paginatedCpmis.length}</b> dari total <b>{filteredCpmis.length}</b> kandidat CPMI
-            {(searchQuery || filterRecruiter || filterStatus || filterCountry || filterGender) && ' (Terfilter)'}
+            {(searchQuery || filterPt || filterRecruiter || filterStatus || filterCountry || filterGender) && ' (Terfilter)'}
           </span>
-          {(searchQuery || filterRecruiter || filterStatus || filterCountry || filterGender) && (
+          {(searchQuery || filterPt || filterRecruiter || filterStatus || filterCountry || filterGender) && (
             <button
               onClick={() => {
                 setSearchQuery('');
+                setFilterPt('');
                 setFilterRecruiter('');
                 setFilterStatus('');
                 setFilterCountry('');
@@ -461,6 +535,7 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
               <tr className="bg-[#F7F5F2] border-b border-[#E2DDD5] text-[#8C8479] font-mono uppercase text-[10px]">
                 <th className="py-3 px-4">ID CPMI</th>
                 <th className="py-3 px-4">Nama Lengkap</th>
+                <th className="py-3 px-4">PT Penempatan</th>
                 <th className="py-3 px-4">Negara & Posisi</th>
                 <th className="py-3 px-4">Status Alur</th>
                 <th className="py-3 px-4">Sponsor / PL</th>
@@ -500,6 +575,14 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
                       <div className="flex items-center gap-1.5 text-[10px] text-[#8C8479] mt-0.5">
                         <span>{c.gender}</span>
                         {c.phone && <span>• {c.phone}</span>}
+                      </div>
+                    </td>
+
+                    {/* PT Penempatan */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/90 border border-blue-200 text-blue-900 text-xs font-semibold" title={c.agency || ptName}>
+                        <Building2 className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                        <span className="truncate max-w-[140px]">{c.agency || ptName}</span>
                       </div>
                     </td>
 
@@ -646,12 +729,25 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
           <div className="w-full max-w-3xl bg-white h-full shadow-2xl flex flex-col overflow-hidden animate-slide-left">
             {/* Drawer Header */}
             <div className="bg-[#1F3A5F] text-white p-6 shrink-0 relative">
-              <button
-                onClick={() => setSelectedCpmiId(null)}
-                className="absolute top-5 right-5 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onPrintCpmi(currentDetailCpmi)}
+                  className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95"
+                  title="Cetak Dokumen & Lembar Monitoring CPMI"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Cetak Dokumen</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCpmiId(null)}
+                  className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                  title="Tutup"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-serif text-2xl font-bold text-amber-300 shrink-0">
@@ -672,6 +768,10 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
                   <p className="text-xs text-white/80 mt-0.5">
                     {currentDetailCpmi.gender} • {currentDetailCpmi.destination} ({currentDetailCpmi.category}) • Sponsor: {currentDetailCpmi.recruiter || 'Kantor Pusat'}
                   </p>
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/15 border border-white/25 text-amber-200 text-xs font-semibold">
+                    <Building2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>PT: {currentDetailCpmi.agency || ptName}</span>
+                  </div>
                 </div>
               </div>
 
@@ -705,6 +805,30 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
 
             {/* Drawer Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Quick PT Overview Banner */}
+              <div className="bg-blue-50/80 p-3.5 rounded-2xl border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-blue-700 font-bold uppercase tracking-wider block">
+                      Perusahaan / PT Penempatan CPMI:
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-blue-950 font-serif">
+                      {currentDetailCpmi.agency || ptName}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(currentDetailCpmi)}
+                  className="px-3 py-1.5 bg-white hover:bg-blue-100 border border-blue-300 rounded-xl text-xs font-bold text-blue-900 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer self-start sm:self-center"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>Ganti PT / Edit Data</span>
+                </button>
+              </div>
               {/* TAB 1: ALUR 10 TAHAPAN */}
               {activeDrawerTab === 'alur' && (
                 <div className="space-y-4">
@@ -971,13 +1095,19 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
             {/* Drawer Footer */}
             <div className="p-4 border-t border-[#E2DDD5] bg-[#F7F5F2] flex justify-between items-center shrink-0">
               <button
-                onClick={() => onPrintCpmi(currentDetailCpmi)}
-                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                type="button"
+                onClick={() => {
+                  if (currentDetailCpmi) {
+                    onPrintCpmi(currentDetailCpmi);
+                  }
+                }}
+                className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-md cursor-pointer active:scale-95"
               >
                 <Printer className="w-4 h-4" />
-                <span>Cetak Biodata / Dossier Resmi</span>
+                <span>Cetak Lembar Monitoring & Kontrol CPMI</span>
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedCpmiId(null)}
                 className="px-4 py-2 bg-white hover:bg-slate-100 text-[#212529] border border-[#E2DDD5] rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
@@ -1051,6 +1181,53 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
                   placeholder="Contoh: SITI NURHALIZAH"
                   className="w-full px-3 py-2 bg-[#F7F5F2] border border-[#E2DDD5] rounded-xl text-xs focus:outline-none focus:border-[#1F3A5F] focus:bg-white text-[#212529]"
                 />
+              </div>
+
+              {/* PT / Perusahaan Penempatan (Manual Input or Suggestions) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-[#1F3A5F]">
+                    Nama PT / Perusahaan Penempatan <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-blue-700 font-semibold">
+                    Bisa ketik manual atau pilih dari daftar
+                  </span>
+                </div>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    list="pt-database-suggestions"
+                    value={editingCpmi.agency || ''}
+                    onChange={(e) => setEditingCpmi({ ...editingCpmi, agency: e.target.value })}
+                    placeholder="Ketik atau pilih PT (Contoh: PT. TRIAS INSAN MADANI / PT. LAINNYA)"
+                    className="w-full pl-9 pr-3 py-2.5 bg-[#F7F5F2] border border-[#E2DDD5] rounded-xl text-xs font-bold text-[#1F3A5F] focus:outline-none focus:border-[#1F3A5F] focus:bg-white transition-all"
+                  />
+                  <datalist id="pt-database-suggestions">
+                    {availablePtList.map((pt) => (
+                      <option key={pt} value={pt} />
+                    ))}
+                  </datalist>
+                </div>
+                {/* Pilihan Cepat PT */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] text-slate-500 font-medium mr-1">Pilihan Cepat:</span>
+                  {availablePtList.slice(0, 5).map((pt) => (
+                    <button
+                      key={pt}
+                      type="button"
+                      onClick={() => setEditingCpmi({ ...editingCpmi, agency: pt })}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition-all cursor-pointer ${
+                        editingCpmi.agency === pt
+                          ? 'bg-blue-100 border-blue-400 text-blue-900 font-bold'
+                          : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700'
+                      }`}
+                    >
+                      {pt}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

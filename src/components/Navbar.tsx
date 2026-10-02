@@ -62,11 +62,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {ptName}
                 </h1>
                 <span className="bg-amber-100 text-amber-900 border border-amber-300/60 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0">
-                  CABANG CIREBON
+                  P3MI RESMI
                 </span>
               </div>
               <p className="text-[10px] text-[#8C8479] font-medium truncate hidden sm:block">
-                Sistem Informasi Penempatan & Buku Kas Operasional CPMI
+                Sistem Manajemen Penempatan Pekerja Migran Indonesia & Buku Kas Kasir
               </p>
             </div>
           </div>

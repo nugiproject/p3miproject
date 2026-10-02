@@ -194,6 +194,7 @@ export default function App() {
           <BatchImportView
             onImportCpmis={handleImportCpmis}
             onImportTransactions={handleImportTransactions}
+            ptName={ptName}
           />
         )}
 
