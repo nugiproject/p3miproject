@@ -11,6 +11,7 @@ import {
   loadLoggedInUser,
   saveLoggedInUser,
   resetAllToDefaults,
+  DEFAULT_ADMIN_USER,
 } from './services/storage';
 import { CpmiRecord, KasTransaction, PortalUser } from './types/cpmi';
 import { Navbar, TabType } from './components/Navbar';
@@ -25,7 +26,9 @@ import { DossierPrintModal, ReceiptPrintModal } from './components/PrintModals';
 import { ShieldCheck } from 'lucide-react';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<PortalUser | null>(() => loadLoggedInUser());
+  const [currentUser, setCurrentUser] = useState<PortalUser | null>(
+    () => loadLoggedInUser() || DEFAULT_ADMIN_USER
+  );
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [ptName, setPtName] = useState<string>(() => loadPtName());
   const [ptLogo, setPtLogo] = useState<string | null>(() => loadPtLogo());
