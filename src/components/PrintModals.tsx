@@ -15,6 +15,7 @@ import { CpmiRecord, KasTransaction } from '../types/cpmi';
 import { formatRupiah, formatDateIndo, getStageStatusMeta, terbilangRupiah } from '../utils/formatters';
 import { DEFAULT_STAGE_LABELS } from '../data/triasDataLoader';
 import { printElementById, openPrintInNewWindow, downloadDocumentAsHtml } from '../utils/printHelper';
+import { exportElementToPdf } from '../utils/pdfExport';
 
 // -------------------------------------------------------------
 // 1. LEMBAR MONITORING & KONTROL PROSES CPMI
@@ -28,8 +29,41 @@ interface DossierPrintModalProps {
 export const DossierPrintModal: React.FC<DossierPrintModalProps> = ({ cpmi, ptName, onClose }) => {
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [toastStatus, setToastStatus] = useState<string | null>(null);
+  const [isSavingPdf, setIsSavingPdf] = useState(false);
 
   if (!cpmi) return null;
+
+  const handleSavePdf = async () => {
+    setIsSavingPdf(true);
+    setToastStatus('Sedang membuat berkas PDF...');
+    try {
+      const ok = await exportElementToPdf(
+        'dossier-printable-content',
+        `Lembar_Monitoring_CPMI_${cpmi.id}_${cpmi.name}`
+      );
+      if (ok) {
+        setToastStatus('File PDF berhasil disimpan ke komputer Anda!');
+      } else {
+        setToastStatus('Mengunduh format dokumen berkas...');
+        downloadDocumentAsHtml(
+          'dossier-printable-content',
+          `Lembar_Monitoring_CPMI_${cpmi.id}_${cpmi.name}`,
+          `Lembar Monitoring CPMI - ${cpmi.id} (${cpmi.name})`
+        );
+      }
+    } catch (e) {
+      console.error('PDF error:', e);
+      setToastStatus('Mengunduh format alternatif...');
+      downloadDocumentAsHtml(
+        'dossier-printable-content',
+        `Lembar_Monitoring_CPMI_${cpmi.id}_${cpmi.name}`,
+        `Lembar Monitoring CPMI - ${cpmi.id} (${cpmi.name})`
+      );
+    } finally {
+      setIsSavingPdf(false);
+      setTimeout(() => setToastStatus(null), 3500);
+    }
+  };
 
   const handlePrint = () => {
     setToastStatus('Membuka dialog cetak browser...');
@@ -37,7 +71,6 @@ export const DossierPrintModal: React.FC<DossierPrintModalProps> = ({ cpmi, ptNa
       window.print();
     } catch (e) {
       console.error('Print trigger failed:', e);
-      // Fallback
       printElementById('dossier-printable-content', `Lembar_Monitoring_CPMI_${cpmi.id}`);
     }
     setTimeout(() => setToastStatus(null), 3000);
@@ -119,25 +152,38 @@ export const DossierPrintModal: React.FC<DossierPrintModalProps> = ({ cpmi, ptNa
               <span className="hidden md:inline">Jendela Baru</span>
             </button>
 
-            {/* Download File Button */}
+            {/* Save PDF Button */}
             <button
               type="button"
-              onClick={handleDownload}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
-              title="Unduh berkas dokumen siap cetak / simpan langsung"
+              disabled={isSavingPdf}
+              onClick={handleSavePdf}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Simpan dokumen langsung menjadi berkas file PDF (.pdf)"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Unduh File</span>
+              <FileCheck2 className="w-3.5 h-3.5" />
+              <span>{isSavingPdf ? 'Membuat PDF...' : 'Simpan PDF (.pdf)'}</span>
             </button>
 
-            {/* Main Print Button */}
+            {/* Print Dialog Button */}
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md active:scale-95"
+              className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md active:scale-95"
+              title="Buka dialog printer browser"
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF</span>
+              <span>Cetak Dokumen</span>
+            </button>
+
+            {/* Download HTML Backup Button */}
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white font-medium rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-white/20"
+              title="Unduh berkas dokumen cadangan HTML"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Unduh Berkas</span>
             </button>
 
             {/* Close Button */}
@@ -357,8 +403,41 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
 }) => {
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [toastStatus, setToastStatus] = useState<string | null>(null);
+  const [isSavingPdf, setIsSavingPdf] = useState(false);
 
   if (!transaction) return null;
+
+  const isIncome = transaction.type === 'pemasukan';
+
+  const handleSavePdf = async () => {
+    setIsSavingPdf(true);
+    setToastStatus('Sedang membuat berkas PDF kwitansi...');
+    try {
+      const ok = await exportElementToPdf(
+        'receipt-printable-content',
+        `Kwitansi_${isIncome ? 'Masuk' : 'Keluar'}_${transaction.pmiRef || transaction.id}`
+      );
+      if (ok) {
+        setToastStatus('File PDF kwitansi berhasil disimpan!');
+      } else {
+        downloadDocumentAsHtml(
+          'receipt-printable-content',
+          `Kwitansi_${transaction.pmiRef || transaction.id}`,
+          `Kwitansi Kasir - ${transaction.pmiRef || transaction.id}`
+        );
+      }
+    } catch (e) {
+      console.error('PDF error:', e);
+      downloadDocumentAsHtml(
+        'receipt-printable-content',
+        `Kwitansi_${transaction.pmiRef || transaction.id}`,
+        `Kwitansi Kasir - ${transaction.pmiRef || transaction.id}`
+      );
+    } finally {
+      setIsSavingPdf(false);
+      setTimeout(() => setToastStatus(null), 3500);
+    }
+  };
 
   const handlePrint = () => {
     setToastStatus('Membuka dialog cetak...');
@@ -395,7 +474,7 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
             </div>
             <div>
               <span className="font-serif font-bold text-xs sm:text-sm block">
-                Kwitansi Kasir Operasional • {transaction.pmiRef || 'UMUM'}
+                {isIncome ? 'Kwitansi Kas Masuk (Pemasukan)' : 'Kwitansi Pengeluaran Kasir'} • {transaction.pmiRef || 'UMUM'}
               </span>
               <span className="text-[10px] text-slate-300">
                 {transaction.noReff || `KW-${transaction.id.slice(-6)}`}
@@ -412,11 +491,13 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
 
             <button
               type="button"
-              onClick={handleDownload}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              disabled={isSavingPdf}
+              onClick={handleSavePdf}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Simpan berkas PDF (.pdf) langsung"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Unduh File</span>
+              <FileCheck2 className="w-3.5 h-3.5" />
+              <span>{isSavingPdf ? 'Membuat PDF...' : 'Simpan PDF (.pdf)'}</span>
             </button>
 
             <button
@@ -426,6 +507,15 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
             >
               <Printer className="w-4 h-4" />
               <span>Cetak Kwitansi</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="p-1.5 text-white/80 hover:text-white rounded-lg cursor-pointer"
+              title="Unduh file HTML"
+            >
+              <Download className="w-4 h-4" />
             </button>
 
             <button
@@ -443,24 +533,34 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
           <div
             id="receipt-printable-content"
             style={{ zoom: `${zoomLevel}%` }}
-            className="w-full max-w-[190mm] bg-[#FFFEFA] text-[#212529] font-sans border-4 border-double border-[#1F3A5F] p-6 sm:p-8 rounded-2xl printable-area shadow-md print:shadow-none print:m-0"
+            className={`w-full max-w-[190mm] bg-[#FFFEFA] text-[#212529] font-sans border-4 border-double ${
+              isIncome ? 'border-emerald-800' : 'border-[#1F3A5F]'
+            } p-6 sm:p-8 rounded-2xl printable-area shadow-md print:shadow-none print:m-0`}
           >
             {/* Header Kwitansi */}
-            <div className="flex justify-between items-start border-b-2 border-[#1F3A5F] pb-3 mb-4">
+            <div className={`flex justify-between items-start border-b-2 ${
+              isIncome ? 'border-emerald-700' : 'border-[#1F3A5F]'
+            } pb-3 mb-4`}>
               <div>
                 <h2 className="text-base font-bold font-serif text-[#1F3A5F] uppercase">
                   {ptName}
                 </h2>
-                <p className="text-[10px] text-slate-600 font-medium">
-                  BUKTI PENGELUARAN KAS KASIR OPERASIONAL CABANG
+                <p className={`text-[11px] font-bold uppercase tracking-wider ${
+                  isIncome ? 'text-emerald-800' : 'text-slate-800'
+                }`}>
+                  {isIncome
+                    ? 'KWITANSI RESMI BUKTI PENERIMAAN KAS (KAS MASUK)'
+                    : 'BUKTI PENGELUARAN KAS KASIR OPERASIONAL CABANG'}
                 </p>
                 <p className="text-[9px] text-slate-500 font-mono">
-                  Sistem Informasi Pembukuan Dana CPMI Resmi
+                  Sistem Informasi Pembukuan Dana CPMI Resmi • {isIncome ? 'Penerimaan Dana Masuk' : 'Pengeluaran Kas Keluar'}
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
-                  No: {transaction.noReff || `KW-${transaction.id.slice(-6)}`}
+                <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${
+                  isIncome ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}>
+                  No: {transaction.noReff || `${isIncome ? 'KM' : 'KW'}-${transaction.id.slice(-6)}`}
                 </span>
                 <p className="text-[10px] text-slate-500 font-mono mt-1">
                   Tanggal: {formatDateIndo(transaction.date)}
@@ -471,11 +571,25 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
             {/* Isian Data Transaksi */}
             <div className="space-y-2.5 text-xs mb-5">
               <div className="flex">
-                <span className="w-36 text-slate-500 font-medium shrink-0">Telah Diterima Dari</span>
-                <span className="font-bold text-[#1F3A5F]">: Kasir Operasional Cabang</span>
+                <span className="w-36 text-slate-500 font-medium shrink-0">
+                  {isIncome ? 'Telah Diterima Dari' : 'Telah Diterima Dari'}
+                </span>
+                <span className="font-bold text-[#1F3A5F]">
+                  : {isIncome
+                    ? (transaction.pmiName ? `${transaction.pmiName} (${transaction.pmiRef})` : transaction.pmiRef || 'Penyetor / CPMI')
+                    : 'Kasir Operasional Cabang'}
+                </span>
               </div>
+              {!isIncome && transaction.pmiName && (
+                <div className="flex">
+                  <span className="w-36 text-slate-500 font-medium shrink-0">Diserahkan Kepada</span>
+                  <span className="font-bold text-[#1F3A5F]">
+                    : {transaction.pmiName} ({transaction.pmiRef})
+                  </span>
+                </div>
+              )}
               <div className="flex">
-                <span className="w-36 text-slate-500 font-medium shrink-0">Untuk Pembayaran</span>
+                <span className="w-36 text-slate-500 font-medium shrink-0">Untuk Keperluan</span>
                 <span className="font-bold">: {transaction.category}</span>
               </div>
               <div className="flex">
@@ -485,18 +599,28 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
                 </span>
               </div>
               <div className="flex">
+                <span className="w-36 text-slate-500 font-medium shrink-0">Metode Transaksi</span>
+                <span className="font-semibold text-slate-800">
+                  : {transaction.paymentMethod || 'Tunai / Cash'}
+                </span>
+              </div>
+              <div className="flex">
                 <span className="w-36 text-slate-500 font-medium shrink-0">Keterangan / Uraian</span>
                 <span className="text-slate-700">: {transaction.description || '-'}</span>
               </div>
             </div>
 
             {/* Kotak Nominal Rupiah & Terbilang */}
-            <div className="bg-slate-100 p-3.5 rounded-xl border border-slate-300 mb-6">
+            <div className={`p-3.5 rounded-xl border mb-6 ${
+              isIncome ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-100 border-slate-300'
+            }`}>
               <div className="flex justify-between items-center mb-1">
                 <span className="font-serif font-bold text-xs uppercase text-slate-600">
                   Jumlah Nominal:
                 </span>
-                <span className="text-lg sm:text-xl font-mono font-bold text-[#1F3A5F]">
+                <span className={`text-lg sm:text-xl font-mono font-bold ${
+                  isIncome ? 'text-emerald-700' : 'text-[#1F3A5F]'
+                }`}>
                   {formatRupiah(transaction.value)}
                 </span>
               </div>
@@ -508,14 +632,20 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
             {/* Area Tanda Tangan */}
             <div className="grid grid-cols-2 gap-8 text-center text-xs pt-3 border-t border-slate-300">
               <div>
-                <p className="text-slate-500 mb-14">Penerima Dana / Sponsor / CPMI,</p>
+                <p className="text-slate-500 mb-14">
+                  {isIncome ? 'Penyetor / CPMI,' : 'Penerima Dana / Sponsor / CPMI,'}
+                </p>
                 <p className="font-bold text-[#1F3A5F] uppercase underline">
                   ( {transaction.pmiName || '........................'} )
                 </p>
               </div>
               <div>
-                <p className="text-slate-500 mb-14">Kasir Pembukuan Cabang,</p>
-                <p className="font-bold text-[#1F3A5F] uppercase underline">( KASIR CABANG )</p>
+                <p className="text-slate-500 mb-14">
+                  {isIncome ? 'Kasir Penerima Dana,' : 'Kasir Pembukuan Cabang,'}
+                </p>
+                <p className="font-bold text-[#1F3A5F] uppercase underline">
+                  ( {transaction.receivedBy || 'KASIR CABANG'} )
+                </p>
               </div>
             </div>
           </div>
@@ -544,9 +674,37 @@ export const ReportConsolidatedPrintModal: React.FC<ReportConsolidatedPrintModal
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [toastStatus, setToastStatus] = useState<string | null>(null);
 
-  const totalOutflow = transactions.reduce((acc, tx) => acc + tx.value, 0);
+  const [isSavingPdf, setIsSavingPdf] = useState(false);
 
-  // Group transactions per CPMI
+  const totalInflow = transactions
+    .filter((tx) => tx.type === 'pemasukan')
+    .reduce((acc, tx) => acc + tx.value, 0);
+  const totalOutflow = transactions
+    .filter((tx) => tx.type !== 'pemasukan')
+    .reduce((acc, tx) => acc + tx.value, 0);
+  const netBalance = totalInflow - totalOutflow;
+
+  const handleSavePdf = async () => {
+    setIsSavingPdf(true);
+    setToastStatus('Sedang membuat berkas PDF rekap...');
+    try {
+      const ok = await exportElementToPdf(
+        'report-printable-content',
+        `Laporan_Konsolidasi_${ptName}`
+      );
+      if (ok) {
+        setToastStatus('File PDF laporan berhasil disimpan!');
+      } else {
+        handleDownload();
+      }
+    } catch {
+      handleDownload();
+    } finally {
+      setIsSavingPdf(false);
+      setTimeout(() => setToastStatus(null), 3500);
+    }
+  };
+
   const candidateStats = cpmis.map((c) => {
     const relatedTxs = transactions.filter((tx) => {
       const cleanTx = (tx.pmiRef || '').replace(/\s+/g, '').toUpperCase();
@@ -630,11 +788,13 @@ export const ReportConsolidatedPrintModal: React.FC<ReportConsolidatedPrintModal
 
             <button
               type="button"
-              onClick={handleDownload}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              disabled={isSavingPdf}
+              onClick={handleSavePdf}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Simpan rekapitulasi langsung ke berkas PDF"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Unduh File</span>
+              <FileCheck2 className="w-3.5 h-3.5" />
+              <span>{isSavingPdf ? 'Membuat PDF...' : 'Simpan PDF (.pdf)'}</span>
             </button>
 
             <button
@@ -644,6 +804,15 @@ export const ReportConsolidatedPrintModal: React.FC<ReportConsolidatedPrintModal
             >
               <Printer className="w-4 h-4" />
               <span>Cetak Laporan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="p-1.5 text-white/80 hover:text-white rounded-lg cursor-pointer"
+              title="Unduh format HTML"
+            >
+              <Download className="w-3.5 h-3.5" />
             </button>
 
             <button

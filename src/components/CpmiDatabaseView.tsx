@@ -192,16 +192,33 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
   // Stage update handler
   const handleUpdateStageStatus = (stageKey: StageKey, newStatus: StageStatus) => {
     if (!currentDetailCpmi) return;
-    const stages = { ...currentDetailCpmi.stages };
-    if (stages[stageKey]) {
-      stages[stageKey] = {
-        ...stages[stageKey],
+    const currentStages = { ...(currentDetailCpmi.stages || {}) };
+    const existingStage = currentStages[stageKey] || {
+      id: stageKey,
+      label: DEFAULT_STAGE_LABELS[stageKey] || stageKey,
+      order: 1,
+      status: 'belum',
+    };
+    const updatedStages = {
+      ...currentStages,
+      [stageKey]: {
+        ...existingStage,
         status: newStatus,
         updatedAt: new Date().toISOString().substring(0, 10),
-      };
-    }
-    const updated = { ...currentDetailCpmi, stages, updatedAt: new Date().toISOString() };
+      },
+    };
+    const updated = { ...currentDetailCpmi, stages: updatedStages, updatedAt: new Date().toISOString() };
     onUpdateCpmi(updated);
+    showToast(`Status tahapan "${DEFAULT_STAGE_LABELS[stageKey] || stageKey}" berhasil diubah ke ${newStatus.toUpperCase()}`);
+  };
+
+  // Main workflow status update handler
+  const handleUpdateMainStatus = (cpmiId: string, newStatus: string) => {
+    const cpmi = cpmis.find((c) => c.id === cpmiId);
+    if (!cpmi) return;
+    const updated = { ...cpmi, status: newStatus, updatedAt: new Date().toISOString() };
+    onUpdateCpmi(updated);
+    showToast(`Status alur ${cpmi.name} diubah menjadi "${newStatus}"`);
   };
 
   // Document checkbox toggle handler
@@ -571,7 +588,14 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
 
                     {/* Name */}
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-[#1F3A5F] text-sm">{c.name}</div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCpmiId(c.id)}
+                        className="font-bold text-[#1F3A5F] text-sm hover:text-blue-600 hover:underline text-left cursor-pointer transition-colors block"
+                        title="Klik nama kandidat untuk membuka detail & lembar monitoring alur proses"
+                      >
+                        {c.name}
+                      </button>
                       <div className="flex items-center gap-1.5 text-[10px] text-[#8C8479] mt-0.5">
                         <span>{c.gender}</span>
                         {c.phone && <span>• {c.phone}</span>}
@@ -596,14 +620,33 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
                       </span>
                     </td>
 
-                    {/* Status Badge */}
+                    {/* Status Badge & Selector */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusMeta.bg}`}
+                      <select
+                        value={c.status}
+                        onChange={(e) => handleUpdateMainStatus(c.id, e.target.value)}
+                        className={`text-[10px] font-bold rounded-full px-2.5 py-1 border cursor-pointer focus:outline-none transition-all shadow-2xs ${statusMeta.bg}`}
+                        title="Klik untuk langsung mengubah status alur tahapan kandidat"
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                        <span>{c.status}</span>
-                      </span>
+                        {[
+                          'PROCESS',
+                          'BNSP/BLK',
+                          'ID PASPOR',
+                          'FINAL STAGE',
+                          'TERBANG (FLIGHT)',
+                          'Siap Terbang',
+                          'Baru',
+                          'SPONSOR',
+                          'UPDATE DOKUMEN KELENGKAPAN',
+                          'VERIF ID',
+                          'CANCEL',
+                          'TOLAK',
+                        ].map((st) => (
+                          <option key={st} value={st} className="bg-white text-slate-800 font-normal">
+                            {st}
+                          </option>
+                        ))}
+                      </select>
                     </td>
 
                     {/* Recruiter */}
@@ -758,9 +801,34 @@ export const CpmiDatabaseView: React.FC<CpmiDatabaseViewProps> = ({
                     <span className="bg-amber-400 text-slate-900 font-mono text-xs font-bold px-2.5 py-0.5 rounded-md">
                       {currentDetailCpmi.id}
                     </span>
-                    <span className="bg-white/20 text-white font-mono text-[10px] px-2 py-0.5 rounded-full">
-                      {currentDetailCpmi.status}
-                    </span>
+                    <div className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg px-2.5 py-0.5 border border-white/30 transition-colors">
+                      <span className="text-[10px] text-amber-300 font-mono font-bold">STATUS:</span>
+                      <select
+                        value={currentDetailCpmi.status}
+                        onChange={(e) => handleUpdateMainStatus(currentDetailCpmi.id, e.target.value)}
+                        className="bg-transparent text-white font-mono text-[11px] font-bold focus:outline-none cursor-pointer"
+                        title="Klik untuk mengubah status alur tahapan kandidat"
+                      >
+                        {[
+                          'PROCESS',
+                          'BNSP/BLK',
+                          'ID PASPOR',
+                          'FINAL STAGE',
+                          'TERBANG (FLIGHT)',
+                          'Siap Terbang',
+                          'Baru',
+                          'SPONSOR',
+                          'UPDATE DOKUMEN KELENGKAPAN',
+                          'VERIF ID',
+                          'CANCEL',
+                          'TOLAK',
+                        ].map((st) => (
+                          <option key={st} value={st} className="bg-slate-900 text-white font-sans">
+                            {st}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold font-serif mt-1 text-white truncate">
                     {currentDetailCpmi.name}

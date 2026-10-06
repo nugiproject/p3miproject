@@ -443,30 +443,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2DDD5]/50">
-              {latestTransactions.map((tx) => (
-                <tr key={tx.id} className="hover:bg-[#F7F5F2]/50 transition-colors">
-                  <td className="py-2.5 px-3 font-mono text-[#8C8479] whitespace-nowrap">
-                    {formatDateIndo(tx.date)}
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800">
-                      {tx.category}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <div className="font-bold text-[#1F3A5F]">{tx.pmiRef}</div>
-                    {tx.pmiName && (
-                      <span className="text-[10px] text-[#4B6584]">{tx.pmiName}</span>
-                    )}
-                  </td>
-                  <td className="py-2.5 px-3 text-[#4B6584] truncate max-w-xs">
-                    {tx.description || '-'}
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-mono font-bold text-[#1F3A5F]">
-                    {formatRupiah(tx.value)}
-                  </td>
-                </tr>
-              ))}
+              {latestTransactions.map((tx) => {
+                const isIncome = tx.type === 'pemasukan';
+                return (
+                  <tr key={tx.id} className="hover:bg-[#F7F5F2]/50 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[#8C8479] whitespace-nowrap">
+                      {formatDateIndo(tx.date)}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono ${
+                          isIncome
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {isIncome ? '+ MASUK' : '- KELUAR'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800">
+                          {tx.category}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <div className="font-bold text-[#1F3A5F]">{tx.pmiRef}</div>
+                      {tx.pmiName && (
+                        <span className="text-[10px] text-[#4B6584]">{tx.pmiName}</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 text-[#4B6584] truncate max-w-xs">
+                      {tx.description || '-'}
+                    </td>
+                    <td className={`py-2.5 px-3 text-right font-mono font-bold ${
+                      isIncome ? 'text-emerald-700' : 'text-rose-700'
+                    }`}>
+                      {isIncome ? '+ ' : '- '}
+                      {formatRupiah(tx.value)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

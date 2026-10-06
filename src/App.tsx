@@ -147,6 +147,7 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         onResetDefaults={handleResetDefaults}
+        onUpdatePtName={handleUpdatePtName}
       />
 
       {/* Main Workspace Viewport */}

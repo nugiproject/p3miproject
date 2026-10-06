@@ -143,6 +143,8 @@ export interface CpmiRecord {
   updatedAt?: string;
 }
 
+export type KasTransactionType = 'pengeluaran' | 'pemasukan';
+
 export type KasCategory =
   | 'Fee Sponsor'
   | 'Biaya MD'
@@ -154,17 +156,28 @@ export type KasCategory =
   | 'Keterangan Lain'
   | 'Tiket'
   | 'Visa'
-  | 'Operasional Kantor';
+  | 'Operasional Kantor'
+  | 'Pembayaran Biaya CPMI'
+  | 'DP / Uang Muka'
+  | 'Pelunasan Biaya CPMI'
+  | 'Fee / Komisi Agency'
+  | 'Refund / Pengembalian Biaya'
+  | 'Kas Masuk / Modal Operasional'
+  | 'Pemasukan Lainnya'
+  | 'Pengeluaran Lainnya';
 
 export interface KasTransaction {
   id: string;
   date: string; // YYYY-MM-DD
+  type?: KasTransactionType; // 'pengeluaran' (default) | 'pemasukan'
   category: KasCategory | string;
   pmiRef: string; // e.g. "TS 6701", "TS 6659", "OPERASIONAL"
   pmiName?: string; // e.g. "Khodijah", "Maya Salsabela"
   value: number; // Rupiah integer
   description?: string;
   noReff?: string;
+  paymentMethod?: string;
+  receivedBy?: string;
   createdAt?: string;
 }
 

@@ -60,10 +60,20 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ cpmis, transactions, p
       .sort((a, b) => b.totalSpent - a.totalSpent);
   }, [cpmis, transactions]);
 
-  // Total Outflow
-  const totalOutflow = useMemo(() => {
-    return transactions.reduce((acc, tx) => acc + (Number(tx.value) || 0), 0);
+  // Total Inflow & Outflow
+  const totalInflow = useMemo(() => {
+    return transactions
+      .filter((tx) => tx.type === 'pemasukan')
+      .reduce((acc, tx) => acc + (Number(tx.value) || 0), 0);
   }, [transactions]);
+
+  const totalOutflow = useMemo(() => {
+    return transactions
+      .filter((tx) => tx.type !== 'pemasukan')
+      .reduce((acc, tx) => acc + (Number(tx.value) || 0), 0);
+  }, [transactions]);
+
+  const netBalance = totalInflow - totalOutflow;
 
   // Identified candidate spend
   const totalIdentifiedSpend = useMemo(() => {
@@ -89,14 +99,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ cpmis, transactions, p
       map[cat] = (map[cat] || 0) + tx.value;
     });
 
+    const totalVal = transactions.reduce((acc, tx) => acc + tx.value, 0);
     return Object.entries(map)
       .map(([cat, val]) => ({
         category: cat,
         value: val,
-        percentage: totalOutflow > 0 ? Math.round((val / totalOutflow) * 100) : 0,
+        percentage: totalVal > 0 ? Math.round((val / totalVal) * 100) : 0,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [transactions, totalOutflow]);
+  }, [transactions]);
 
   // Filtered candidate ledger
   const filteredLedger = useMemo(() => {
@@ -157,61 +168,85 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ cpmis, transactions, p
 
       {/* 4 Executive KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Card 1: Total Budget Outflow */}
-        <div className="bg-white p-6 rounded-3xl border border-[#E2DDD5] shadow-xs">
+        {/* Card 1: Total Pemasukan */}
+        <div className="bg-white p-6 rounded-3xl border border-emerald-200 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[#8C8479] text-xs font-semibold uppercase tracking-wide">
-              Total Seluruh Kas Keluar
+            <span className="text-emerald-700 text-xs font-semibold uppercase tracking-wide">
+              Total Kas Masuk (Pemasukan)
             </span>
-            <div className="p-2 bg-blue-50 text-blue-700 rounded-xl">
+            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
               <Wallet className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold font-serif text-[#1F3A5F]">
-            {formatRupiah(totalOutflow)}
+          <p className="text-2xl font-bold font-serif text-emerald-800">
+            {formatRupiah(totalInflow)}
           </p>
-          <span className="text-[10px] text-[#4B6584] font-mono mt-1 block">
-            {transactions.length} Total Transaksi Kasir
+          <span className="text-[10px] text-emerald-600 font-mono mt-1 block">
+            Penerimaan Dana Kas Masuk
           </span>
         </div>
 
-        {/* Card 2: Identified Candidate Outflow */}
+        {/* Card 2: Total Budget Outflow */}
+        <div className="bg-white p-6 rounded-3xl border border-rose-200 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-rose-700 text-xs font-semibold uppercase tracking-wide">
+              Total Kas Keluar (Pengeluaran)
+            </span>
+            <div className="p-2 bg-rose-50 text-rose-700 rounded-xl">
+              <Wallet className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold font-serif text-rose-800">
+            {formatRupiah(totalOutflow)}
+          </p>
+          <span className="text-[10px] text-rose-600 font-mono mt-1 block">
+            Pengeluaran Operasional & Biaya CPMI
+          </span>
+        </div>
+
+        {/* Card 3: Saldo Kas Bersih */}
+        <div className={`p-6 rounded-3xl border shadow-xs ${
+          netBalance >= 0 ? 'bg-emerald-50/30 border-emerald-300' : 'bg-rose-50/30 border-rose-300'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#1F3A5F]">
+              Saldo Kas Bersih
+            </span>
+            <div className={`p-2 rounded-xl ${
+              netBalance >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+            }`}>
+              <Building className="w-4 h-4" />
+            </div>
+          </div>
+          <p className={`text-2xl font-bold font-serif ${
+            netBalance >= 0 ? 'text-emerald-800' : 'text-rose-800'
+          }`}>
+            {formatRupiah(netBalance)}
+          </p>
+          <span className="text-[10px] font-mono text-[#4B6584] mt-1 block">
+            {netBalance >= 0 ? 'Surplus Kas' : 'Defisit Sementara'}
+          </span>
+        </div>
+
+        {/* Card 4: Identified Candidate Outflow */}
         <div className="bg-white p-6 rounded-3xl border border-[#E2DDD5] shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[#8C8479] text-xs font-semibold uppercase tracking-wide">
               Biaya Khusus CPMI
             </span>
-            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+            <div className="p-2 bg-blue-50 text-blue-700 rounded-xl">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold font-serif text-emerald-800">
+          <p className="text-2xl font-bold font-serif text-[#1F3A5F]">
             {formatRupiah(totalIdentifiedSpend)}
           </p>
-          <span className="text-[10px] text-emerald-700 font-mono mt-1 block">
-            {Math.round((totalIdentifiedSpend / (totalOutflow || 1)) * 100)}% Alokasi Kandidat
+          <span className="text-[10px] text-[#4B6584] font-mono mt-1 block">
+            {activeCandidatesCount} Kandidat dengan Biaya Alur
           </span>
         </div>
 
-        {/* Card 3: Overhead / General Spend */}
-        <div className="bg-white p-6 rounded-3xl border border-[#E2DDD5] shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[#8C8479] text-xs font-semibold uppercase tracking-wide">
-              Operasional / Overhead Kantor
-            </span>
-            <div className="p-2 bg-amber-50 text-amber-700 rounded-xl">
-              <Building className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold font-serif text-amber-900">
-            {formatRupiah(overheadSpend)}
-          </p>
-          <span className="text-[10px] text-amber-700 font-mono mt-1 block">
-            Biaya Sarpras, Perizinan, Dinas
-          </span>
-        </div>
-
-        {/* Card 4: Average per Active Candidate */}
+        {/* Card 5: Average per Active Candidate */}
         <div className="bg-white p-6 rounded-3xl border border-[#E2DDD5] shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[#8C8479] text-xs font-semibold uppercase tracking-wide">
